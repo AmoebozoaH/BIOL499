@@ -1,0 +1,42 @@
+library(ggtree)
+library(ggplot2)
+library(aplot)
+library(viridisLite) # load this one
+library(reshape2)
+
+#Snippy core newick tree
+tree <- read.tree("~/Desktop/snippy_core_Nader_WGS_doubles_filtered.nwk.txt")
+
+#Metadata file
+tb <- read.csv("~/Desktop/for_tree.csv",header=TRUE)
+
+#This is so all "figures" that get aligned to the tree can be a single column with their x-axis only having one value.
+tb$value <- 1
+
+#Building the figure one piece at a time starting with the tree itself where the treescale, hjust, vjust and size may need to be played around with. Maybe just leave them as default and then change once you see the final figure.
+p <- ggtree(tree) + geom_treescale(x = 0,y=120) + geom_text2(aes(subset = !isTip, label=label),hjust = 1.2, vjust = -0.4, size = 3) + theme(legend.position = "none")  + geom_tiplab(align=TRUE)
+
+#Making a serotype "figure" that is a single column.
+p1 <- ggplot(tb, aes(Genome.Name, value)) + geom_col(aes(fill=Serotype),alpha=0.8) + geom_text(aes(label=Serotype, y=0.5)) + coord_flip() + theme_void() + theme(legend.position="none")
+
+#Making a MLST "figure" that is a single column.
+p2 <- ggplot(tb, aes(Genome.Name, value)) + geom_col(aes(fill=MLST...ST),alpha=0.8) + geom_text(aes(label=MLST...ST, y=0.5)) + coord_flip() + theme_void() + theme(legend.position="none") + scale_fill_viridis_d()
+
+#Making a np/ear single column.
+p3 <- ggplot(tb, aes(Genome.Name, value)) + geom_col(aes(fill=Np.ear),alpha=0.8) + coord_flip() + theme_void() + theme(legend.position="none")+ scale_fill_manual(values = c("gray50", "white"))
+
+#Making a genome fraction (assembly size/reference genome size) column.
+p4 <- ggplot(tb, aes(Genome.Name, value)) + geom_col(aes(fill=Genome.fraction....),alpha=0.8) + geom_text(aes(label=Genome.fraction...., y=0.5)) + coord_flip() + theme_void() + scale_fill_viridis_c() ## this
+
+#Making a single clinical AMR column (this was just for penicillin but if you have a bunch you might want to use the tile approach from p6 below).
+p5 <- ggplot(tb, aes(Genome.Name, value)) + geom_col(aes(fill=Penicillin),alpha=0.8) + coord_flip() + theme_void() + theme(legend.position="none") + scale_fill_manual(values = c("white", "grey50", "black","grey90"))
+
+#The PathogenWatch predicted AMRs. Cut the tb table to the columns for the predicted AMRs and then melt it so that Var1 is the sample, Var2 is the antibiotic and the value is S/R. Probably want to check what tbm looks like because sometimes melt is difficult and you have to hardcode in the variables. And sometimes it's happy and works fine.
+tbm <- melt(tb[,7:9])
+p6 <- ggplot(tbm, aes(x=Var2, y=Var1,fill=value)) + geom_tile() + theme_tree2() + scale_fill_manual(values = c("white","gray50","white","black","gray90","white")) + theme(axis.text.x = element_text(angle = 45, hjust=1))
+
+#Age of the children (in months as less precise than birthdate and so better for privacy).
+p7 <- ggplot(tb, aes(Genome.Name, value)) + geom_col(aes(fill=Age..months.),alpha=0.8) + geom_text(aes(label=Age..months., y=0.5)) + coord_flip() + theme_void() + scale_fill_viridis_c()
+
+#Adding all the figures together. Will have to play with the widths.
+final <- p7 %>% insert_left(p6,width=2) %>% insert_left(p5,width=1) %>% insert_left(p4,width=2) %>% insert_left(p3,width=1) %>% insert_left(p1,width=1) %>% insert_left(p2,width=1) %>% insert_left(p, width=15)

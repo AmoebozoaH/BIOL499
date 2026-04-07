@@ -1,0 +1,4 @@
+- cross map to illumine sequence data, to see which ones are overlapped.
+- do a base assemble for nanopore (nanopore only)
+- do nanopore assembly + nanopore polisher
+- do hybrid assembly
